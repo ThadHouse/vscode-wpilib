@@ -1,33 +1,28 @@
 import { app, BrowserWindow } from 'electron';
-import * as path from 'path';
-import * as url from 'url';
+// import * as path from 'path';
+// import * as url from 'url';
 
 let mainWindow: Electron.BrowserWindow | undefined;
 
 function createWindow() {
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    height: 150,
-    width: 180,
     backgroundColor: '#2e2c29',
-    title: 'WPILib Utility'
+    height: 150,
+    title: 'WPILib Utility',
+    width: 180,
   });
 
-  // and load the index.html of the app.
-  mainWindow.loadURL(url.format({
-      pathname: path.join(__dirname, '../index.html'),
-      protocol: 'file:',
-      slashes: true,
-  }));
+  mainWindow.loadFile('index.html');
 
   mainWindow.setMenu(null);
 
   // Open the DevTools.
-  //mainWindow.webContents.openDevTools();
+  // mainWindow.webContents.openDevTools();
 
-  //mainWindow.webContents.send('messageFromMain', 'hello');
+  // mainWindow.webContents.send('messageFromMain', 'hello');
 
-  //console.log('logging');
+  // console.log('logging');
 
   // Emitted when the window is closed.
   mainWindow.on('closed', () => {

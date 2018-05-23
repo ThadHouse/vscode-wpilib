@@ -1,15 +1,15 @@
-import * as path from 'path';
+import * as electron from 'electron';
 import * as fs from 'fs';
+import * as path from 'path';
 import { generateCopyCpp, generateCopyJava } from './shared/generator';
 
-const remote = require('electron').remote;
+const remote = electron.remote;
 const dialog = remote.dialog;
 const app = remote.app;
-const shell = require('electron').shell;
+const shell = electron.shell;
 const basepath = app.getAppPath();
 
 console.log(basepath);
-
 
 let resourceRoot = path.join(basepath, 'resources');
 if (basepath.indexOf('default_app.asar') >= 0) {
@@ -17,15 +17,13 @@ if (basepath.indexOf('default_app.asar') >= 0) {
 }
 const examplesFileName = 'examples.json';
 const templatesFileName = 'templates.json';
-const resourceSrcRoot = path.join(resourceRoot, 'src');
-const cppRoot = path.join(resourceSrcRoot, 'cpp');
-const cppGradleRoot = path.join(cppRoot, 'gradlebase');
+const cppRoot = path.join(resourceRoot, 'cpp', 'src');
+const gradleRoot = path.join(resourceRoot, 'gradle');
 const cppTemplatesRoot = path.join(cppRoot, 'templates');
 const cppExamplesRoot = path.join(cppRoot, 'examples');
 const cppTemplatesFile = path.join(cppTemplatesRoot, templatesFileName);
 const cppExamplesFile = path.join(cppExamplesRoot, examplesFileName);
-const javaRoot = path.join(resourceSrcRoot, 'java');
-const javaGradleRoot = path.join(javaRoot, 'gradlebase');
+const javaRoot = path.join(resourceRoot, 'java', 'src');
 const javaTemplatesRoot = path.join(javaRoot, 'templates');
 const javaExamplesRoot = path.join(javaRoot, 'examples');
 const javaTemplatesFile = path.join(javaTemplatesRoot, templatesFileName);
@@ -41,86 +39,76 @@ interface IDisplayJSON {
   description: string;
   tags: string[];
   foldername: string;
+  gradlebase: string;
 }
 
-
-window.addEventListener('load', () => {
+window.addEventListener('load', async () => {
   const mainDiv = document.getElementById('mainDiv');
   if (mainDiv === null) {
     return;
   }
+
   const radioForm = document.createElement('div');
-  const javaRadio = document.createElement('input');
-  javaRadio.type = 'radio';
-  javaRadio.id = 'javaRadio';
-  javaRadio.name = 'language';
-  javaRadio.value = 'java';
-  javaRadio.checked = true;
-  const javaRadioLabel = document.createElement('label');
-  javaRadioLabel.htmlFor = 'javaRadio';
-  javaRadioLabel.innerText = 'Java Templates';
 
-  const javaRadioExamples = document.createElement('input');
-  javaRadioExamples.type = 'radio';
-  javaRadioExamples.id = 'javaRadioExamples';
-  javaRadioExamples.name = 'language';
-  javaRadioExamples.value = 'javaex';
-  const javaRadioLabelExamples = document.createElement('label');
-  javaRadioLabelExamples.htmlFor = 'javaRadioExamples';
-  javaRadioLabelExamples.innerText = 'Java Examples';
+  const languages: Array<[string, (e?: Event) => void, (e?: Event) => void]> = [
+    ['Java', handleJavaTemplates, handleJavaExamples],
+    ['C++', handleCppTemplates, handleCppExamples],
+    ['Python', () => alert('Work in progess.'), () => alert('Work in progess.')],
+  ];
 
-  const cppRadio = document.createElement('input');
-  cppRadio.type = 'radio';
-  cppRadio.id = 'cppRadio';
-  cppRadio.name = 'language';
-  cppRadio.value = 'cpp';
-  const cppRadioLabel = document.createElement('label');
-  cppRadioLabel.htmlFor = 'cppRadio';
-  cppRadioLabel.innerText = 'C++ Templates';
+  for (const languageDetails of languages) {
+    let language;
+    let templatesEventHandler;
+    let examplesEventHandler;
 
-  const cppRadioExamples = document.createElement('input');
-  cppRadioExamples.type = 'radio';
-  cppRadioExamples.id = 'cppRadioExamples';
-  cppRadioExamples.name = 'language';
-  cppRadioExamples.value = 'cppex';
-  const cppRadioLabelExamples = document.createElement('label');
-  cppRadioLabelExamples.htmlFor = 'cppRadioExamples';
-  cppRadioLabelExamples.innerText = 'C++ Examples';
+    [language, templatesEventHandler, examplesEventHandler] = languageDetails;
 
-  radioForm.appendChild(javaRadio);
-  radioForm.appendChild(javaRadioLabel);
-  radioForm.appendChild(javaRadioExamples);
-  radioForm.appendChild(javaRadioLabelExamples);
-  radioForm.appendChild(cppRadio);
-  radioForm.appendChild(cppRadioLabel);
-  radioForm.appendChild(cppRadioExamples);
-  radioForm.appendChild(cppRadioLabelExamples);
+    const languageLowerCase = language.toLocaleLowerCase();
 
-  const langChangeButton = document.createElement('button');
-  langChangeButton.id = 'languageButton';
-  langChangeButton.innerText = 'Choose Lang/Type';
+    // Templates
+    const templatesRadioButton = document.createElement('input');
+    const templatesId = `${languageLowerCase}Radio`;
 
-  radioForm.appendChild(langChangeButton);
+    templatesRadioButton.type = 'radio';
+    templatesRadioButton.id = templatesId;
+    templatesRadioButton.name = 'language';
+    templatesRadioButton.value = languageLowerCase;
 
-  langChangeButton.addEventListener('click', async (_ev) => {
-    if (javaRadio.checked) {
-      await handleJavaTemplates();
-    } else if (javaRadioExamples.checked) {
-      await handleJavaExamples();
-    } else if (cppRadio.checked) {
-      await handleCppTemplates();
-    } else if (cppRadioExamples.checked) {
-      await handleCppExamples();
-    } else {
-      console.log('hmm, invalid click');
-    }
-  });
+    templatesRadioButton.addEventListener('click', templatesEventHandler);
+
+    const templatesRadioLabel = document.createElement('label');
+    templatesRadioLabel.htmlFor = templatesId;
+    templatesRadioLabel.innerText = `${language} Templates`;
+
+    // Examples
+    const examplesRadioButton = document.createElement('input');
+    const examplesId = `${languageLowerCase}RadioExamples`;
+
+    examplesRadioButton.type = 'radio';
+    examplesRadioButton.id = examplesId;
+    examplesRadioButton.name = 'language';
+    examplesRadioButton.value = `${languageLowerCase}ex`;
+
+    const examplesRadioLabel = document.createElement('label');
+    examplesRadioLabel.htmlFor = examplesId;
+    examplesRadioLabel.innerText = `${language} Examples`;
+
+    examplesRadioButton.addEventListener('click', examplesEventHandler);
+
+    // Add to the form
+    radioForm.appendChild(templatesRadioButton);
+    radioForm.appendChild(templatesRadioLabel);
+    radioForm.appendChild(examplesRadioButton);
+    radioForm.appendChild(examplesRadioLabel);
+  }
 
   mainDiv.appendChild(radioForm);
 
   const itemsDiv = document.createElement('div');
   itemsDiv.id = 'shownItems';
   mainDiv.appendChild(itemsDiv);
+
+  await handleJavaTemplates();
 
 });
 
@@ -138,25 +126,25 @@ function loadFile(fName: string): Promise<string> {
 
 async function handleJavaTemplates() {
   const contents = await loadFile(javaTemplatesFile);
-  const parsed: IDisplayJSON[] = JSON.parse(contents);
+  const parsed: IDisplayJSON[] = JSON.parse(contents) as IDisplayJSON[];
   displayItems(parsed, javaTemplatesRoot, true);
 }
 
 async function handleJavaExamples() {
   const contents = await loadFile(javaExamplesFile);
-  const parsed: IDisplayJSON[] = JSON.parse(contents);
+  const parsed: IDisplayJSON[] = JSON.parse(contents) as IDisplayJSON[];
   displayItems(parsed, javaExamplesRoot, true);
 }
 
 async function handleCppTemplates() {
   const contents = await loadFile(cppTemplatesFile);
-  const parsed: IDisplayJSON[] = JSON.parse(contents);
+  const parsed: IDisplayJSON[] = JSON.parse(contents) as IDisplayJSON[];
   displayItems(parsed, cppTemplatesRoot, false);
 }
 
 async function handleCppExamples() {
   const contents = await loadFile(cppExamplesFile);
-  const parsed: IDisplayJSON[] = JSON.parse(contents);
+  const parsed: IDisplayJSON[] = JSON.parse(contents) as IDisplayJSON[];
   displayItems(parsed, cppTemplatesRoot, false);
 }
 
@@ -197,7 +185,7 @@ function displayItems(toDisplay: IDisplayJSON[], rootFolder: string, java: boole
   itemsDiv.appendChild(ul);
 }
 
-document.addEventListener('keydown', function (e) {
+document.addEventListener('keydown', (e) => {
   if (e.which === 123) {
     remote.getCurrentWindow().webContents.toggleDevTools();
   } else if (e.which === 116) {
@@ -208,8 +196,8 @@ document.addEventListener('keydown', function (e) {
 function askForFolder(): Promise<string[]> {
   return new Promise<string[]>((resolve) => {
     dialog.showOpenDialog({
+      defaultPath: projectRootPath,
       properties: ['openDirectory', 'createDirectory', 'promptToCreate'],
-      defaultPath: projectRootPath
     }, (paths) => {
       resolve(paths);
     });
@@ -221,11 +209,16 @@ async function handleCppCreate(_item: IDisplayJSON, _srcRoot: string): Promise<v
   if (dirArr === undefined) {
     return;
   }
-  //console.log(dirArr);
   const toFolder = dirArr[0];
 
   const templateFolder = path.join(_srcRoot, _item.foldername);
-  await generateCopyCpp(templateFolder, cppGradleRoot, toFolder);
+  const result = await generateCopyCpp(templateFolder, path.join(gradleRoot, _item.gradlebase), toFolder);
+  if (!result) {
+    dialog.showMessageBox({
+      message: 'Cannot extract into non empty directory',
+      noLink: true,
+    });
+  }
 }
 
 async function handleJavaCreate(_item: IDisplayJSON, _srcRoot: string): Promise<void> {
@@ -233,18 +226,26 @@ async function handleJavaCreate(_item: IDisplayJSON, _srcRoot: string): Promise<
   if (dirArr === undefined) {
     return;
   }
-  //console.log(dirArr);
   const toFolder = dirArr[0];
 
   const templateFolder = path.join(_srcRoot, _item.foldername);
-  await generateCopyJava(templateFolder, javaGradleRoot, toFolder);
+  const result = await generateCopyJava(templateFolder, path.join(gradleRoot, _item.gradlebase), toFolder);
+
+  if (!result) {
+    dialog.showMessageBox({
+      message: 'Cannot extract into non empty directory',
+      noLink: true,
+    });
+    return;
+  }
 
   dialog.showMessageBox({
-    message: 'Creation of project complete',
     buttons: ['Open Folder', 'OK'],
-    noLink: true
+    message: 'Creation of project complete',
+    noLink: true,
   }, (r) => {
-    if (r === 1) {
+    if (r === 0) {
+      console.log(toFolder);
       shell.showItemInFolder(path.join(toFolder, 'build.gradle'));
     }
     console.log(r);

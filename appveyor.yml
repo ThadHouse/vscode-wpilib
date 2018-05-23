@@ -24,9 +24,9 @@ cache: C:\Users\appveyor\.gradle
 build_script:
 - ps: >-
     If (Test-Path Env:APPVEYOR_REPO_TAG_NAME) {
-        ./gradlew build updateVersions extractCppDependencies -PjenkinsBuild -PreleaseType=OFFICIAL --continue --no-daemon
+        ./gradlew build updateVersions updateAllDependencies -PjenkinsBuild -PreleaseType=OFFICIAL --continue --no-daemon
     } Else {
-        ./gradlew build updateVersions extractCppDependencies -PjenkinsBuild --continue --no-daemon
+        ./gradlew build updateVersions updateAllDependencies -PjenkinsBuild --continue --no-daemon
     }
 
     if ($lastexitcode -ne 0) {
@@ -37,19 +37,66 @@ build_script:
 
     npm install
 
+    if ($lastexitcode -ne 0) {
+        throw ("Exec: " + $errorMessage)
+    }
+
+    npm run lint
+
+    if ($lastexitcode -ne 0) {
+        throw ("Exec: " + $errorMessage)
+    }
+
     vsce package
 
     if ($lastexitcode -eq 0) {
         echo $lastexitcode
     }
+
+    cd ..
+
+    cd wpilib-utility-standalone
+
+    npm install
+
+    if ($lastexitcode -ne 0) {
+        throw ("Exec: " + $errorMessage)
+    }
+
+    npm run lint
+
+    if ($lastexitcode -ne 0) {
+        throw ("Exec: " + $errorMessage)
+    }
+
+    npm run compile
+
+    if ($lastexitcode -ne 0) {
+        throw ("Exec: " + $errorMessage)
+    }
+
+    npm run packageWindows
+
+    if ($lastexitcode -ne 0) {
+        throw ("Exec: " + $errorMessage)
+    }
+
+    7z a WPILibStandalone.zip $env:APPVEYOR_BUILD_FOLDER\\build\\wpilibutility-win32-ia32\\*
+
+    if ($lastexitcode -ne 0) {
+        throw ("Exec: " + $errorMessage)
+    }
+
 test: off
 artifacts:
 - path: '**/*.vsix'
   name: VSIX
+- path: '**/WPILibStandalone.zip'
+  name: Standalone
 deploy:
 - provider: GitHub
   auth_token:
-    secure: jecQI2sLa3l2Ubgls0IS5xeqCezIqisLyC4y8VSm7JZzXM7r+wWc7Fs7aoCQJ51G
+    secure: h4+50xyT4O2QudfUFvnjoUGSZUxNePY9WaYshTsaTzJctxhFFb21eERKx40qumep
   artifact: /.*\.*/
   on:
     appveyor_repo_tag: true
