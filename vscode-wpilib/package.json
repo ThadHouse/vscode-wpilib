@@ -173,6 +173,11 @@
                 "category": "WPILib"
             },
             {
+                "command": "wpilibcore.upgradeEclipseProject",
+                "title": "Upgrade a WPILib eclispe project",
+                "category": "WPILib"
+            },
+            {
                 "command": "wpilibcore.createCommand",
                 "title": "Create a new class/command",
                 "category": "WPILib",
@@ -290,6 +295,7 @@
         "glob": "^7.1.2",
         "jsonc-parser": "^2.0.0",
         "mkdirp": "^0.5.1",
-        "ncp": "^2.0.0"
+        "ncp": "^2.0.0",
+        "properties": "^1.2.1"
     }
 }

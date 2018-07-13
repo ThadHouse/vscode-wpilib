@@ -2,45 +2,35 @@ plugins {
     id "java"
     id "eclipse"
     id "idea"
-    id "jaci.openrio.gradle.GradleRIO" version "2018.01.22"
+    id "jaci.openrio.gradle.GradleRIO" version "2018.05.25"
 }
 
-def TEAM = 5333
-def ROBOT_CLASS = "frc.robot.Robot"
-
-if (project.hasProperty('teamNumber')) {
-    TEAM = teamNumber.toInteger()
+repositories {
+    mavenCentral()
 }
 
-def useDebug = false
-
-if(project.hasProperty('debugMode')) {
-    useDebug = true;
-}
+def TEAM = 9999
+def ROBOT_CLASS = ###ROBOTCLASSREPLACE###
 
 // Define my targets (RoboRIO) and artifacts (deployable files)
 // This is added by GradleRIO's backing project EmbeddedTools.
 deploy {
     targets {
         target("roborio", jaci.openrio.gradle.frc.RoboRIO) {
-            team = TEAM
+            team = getTeamOrDefault(TEAM)
         }
     }
     artifacts {
         artifact('frcJava', jaci.openrio.gradle.frc.FRCJavaArtifact) {
             targets << "roborio"
-            debug = useDebug
+            debug = getDebugOrDefault(false)
         }
     }
 }
 
-// Defining my dependencies. In this case, WPILib (+ friends), CTRE Phoenix (Talon SRX)
-// and NavX.
+// Defining my dependencies. In this case, WPILib (+ friends)
 dependencies {
     compile wpilib()
-    compile ctre()
-    compile navx()
-    compile openrio.powerup.matchData()
 }
 
 // Setting up my Jar File. In this case, adding all libraries into the main jar ('fat jar')
@@ -52,5 +42,5 @@ jar {
 }
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '4.4'
+    gradleVersion = '4.7'
 }

@@ -63,14 +63,15 @@ export async function generateCopyCpp(fromTemplateFolder: string, fromGradleFold
   return true;
 }
 
-export async function generateCopyJava(fromTemplateFolder: string, fromGradleFolder: string, toFolder: string): Promise<boolean> {
+export async function generateCopyJava(fromTemplateFolder: string, fromGradleFolder: string, toFolder: string,
+                                       robotClassTo: string, copyRoot: string): Promise<boolean> {
   const existingFiles = await promisifyReadDir(toFolder);
   if (existingFiles.length > 0) {
     return false;
   }
 
   const rootCodePath = path.join(toFolder, 'src', 'main', 'java');
-  const codePath = path.join(rootCodePath, 'frc', 'robot');
+  const codePath = path.join(rootCodePath, copyRoot);
   await promisifyNcp(fromTemplateFolder, codePath);
 
   const files = await new Promise<string[]>((resolve, reject) => {
@@ -91,6 +92,8 @@ export async function generateCopyJava(fromTemplateFolder: string, fromGradleFol
   const replacePackageFrom = 'edu\\.wpi\\.first\\.wpilibj\\.(?:examples|templates)\\..+?(?=;|\\.)';
   const replacePackageTo = 'frc.robot';
 
+  const robotClassFrom = '###ROBOTCLASSREPLACE###';
+
   const promiseArray: Array<Promise<void>> = [];
 
   for (const f of files) {
@@ -100,7 +103,8 @@ export async function generateCopyJava(fromTemplateFolder: string, fromGradleFol
         if (err) {
           reject(err);
         } else {
-          const dataOut = dataIn.replace(new RegExp(replacePackageFrom, 'g'), replacePackageTo);
+          const dataOut = dataIn.replace(new RegExp(replacePackageFrom, 'g'), replacePackageTo)
+                                .replace(new RegExp(robotClassFrom, 'g'), robotClassTo);
           fs.writeFile(file, dataOut, 'utf8', (err1) => {
             if (err1) {
               reject(err);
