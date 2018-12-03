@@ -87,42 +87,49 @@
             "title": "WPILib configuration",
             "properties": {
                 "wpilib.additionalGradleArguments": {
+                    "printName": "Additional Gradle Arguments",
                     "type": "string",
                     "default": "",
                     "description": "For debugging only, passes extra arguments to gradle invokations",
                     "scope": "resource"
                 },
                 "wpilib.autoSaveOnDeploy": {
+                    "printName": "Auto Save On Deploy",
                     "type": "boolean",
                     "default": true,
                     "description": "Automatically save all files on deploy",
                     "scope": "resource"
                 },
                 "wpilib.autoStartRioLog": {
+                    "printName": "Auto Start RIOLog",
                     "type": "boolean",
                     "default": true,
-                    "description": "Automatically start RioLog on deploy",
+                    "description": "Automatically start RIOLog on deploy",
                     "scope": "resource"
                 },
                 "wpilib.alwaysAskForTeamNumber": {
+                    "printName": "Always Ask For Team Number",
                     "type": "boolean",
                     "default": false,
                     "description": "Always ask for a team number, even if set",
                     "scope": "resource"
                 },
                 "wpilib.online": {
+                    "printName": "Build Online",
                     "type": "boolean",
                     "default": false,
                     "description": "Perform gradle commands without offline flag",
                     "scope": "resource"
                 },
                 "wpilib.skipTests": {
+                    "printName": "Skip Tests",
                     "type": "boolean",
                     "default": false,
                     "description": "Set to skip running tests on build",
                     "scope": "resource"
                 },
                 "wpilib.stopSimulationOnEntry": {
+                    "printName": "Stop Simulation On Entry",
                     "type": "boolean",
                     "default": "false",
                     "description": "Set to make simulation code stop automatically on entry",
@@ -285,6 +292,11 @@
             {
                 "command": "wpilibcore.changeDesktop",
                 "title": "%wpilibcore.changeDesktop.title%",
+                "category": "WPILib"
+            },
+            {
+                "command": "wpilibcore.changeSettings",
+                "title": "Change WPILib Settings",
                 "category": "WPILib"
             }
         ],

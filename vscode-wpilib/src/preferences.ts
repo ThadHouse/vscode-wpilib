@@ -3,13 +3,33 @@ import * as jsonc from 'jsonc-parser';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { IPreferences } from 'vscode-wpilibapi';
-import { promisifyExists, promisifyMkDir, promisifyReadFile, promisifyWriteFile } from './utilities';
+import { extensionContext, promisifyExists, promisifyMkDir, promisifyReadFile, promisifyWriteFile } from './utilities';
 
 export interface IPreferencesJson {
   currentLanguage: string;
   teamNumber: number;
   enableCppIntellisense: boolean;
   projectYear: string;
+}
+
+class ConfigurationObject implements vscode.QuickPickItem {
+  public readonly label: string;
+  public readonly description: string;
+  public readonly picked: boolean;
+  public readonly property: string;
+  public readonly deflt: boolean;
+
+  public constructor(label: string, description: string, property: string, deflt: boolean, picked: boolean = false) {
+    this.label = label;
+    this.description = description;
+    this.property = property;
+    this.picked = picked;
+    this.deflt = deflt;
+  }
+
+  public clone(picked: boolean): ConfigurationObject {
+    return new ConfigurationObject(this.label, this.description, this.property, this.deflt, picked);
+  }
 }
 
 const defaultPreferences: IPreferencesJson = {
@@ -49,6 +69,7 @@ export class Preferences implements IPreferences {
   public workspace: vscode.WorkspaceFolder;
 
   private preferencesFile?: vscode.Uri;
+  private readonly updatableSettings: ConfigurationObject[] = [];
   private readonly configFolder: string;
   private readonly preferenceFileName: string = 'wpilib_preferences.json';
   private preferencesJson: IPreferencesJson = defaultPreferences;
@@ -227,6 +248,50 @@ export class Preferences implements IPreferences {
     }
   }
 
+  public async updateProperties(global: boolean): Promise<void> {
+    const arr: ConfigurationObject[] = [];
+    const config = this.getConfigurationRoot();
+    for (const ud of this.updatableSettings) {
+      const getProp = config.get<boolean>(ud.property);
+      arr.push(ud.clone(getProp !== undefined ? getProp : ud.deflt));
+    }
+
+    const picked = await vscode.window.showQuickPick(arr, {
+      canPickMany: true,
+      ignoreFocusOut: true,
+    });
+
+    if (picked === undefined) {
+      return;
+    }
+
+    const toUpdate: ConfigurationObject[] = [];
+
+    for (const a of arr) {
+      let foundPicked = false;
+      for (const p of picked) {
+        // Find picked match
+        if (a.property === p.property) {
+          if (!a.picked) {
+            // was not picked, now is
+            toUpdate.push(p.clone(true));
+          }
+
+          foundPicked = true;
+          break;
+        }
+      }
+      if (!foundPicked && a.picked) {
+        // was picked, now is not
+        toUpdate.push(a.clone(false));
+      }
+    }
+
+    for (const update of toUpdate) {
+      config.update(update.property, update.picked, global ? vscode.ConfigurationTarget.Global : vscode.ConfigurationTarget.WorkspaceFolder);
+    }
+  }
+
   private async asyncInitialize() {
     const configFilePath = path.join(this.configFolder, this.preferenceFileName);
 
@@ -240,10 +305,25 @@ export class Preferences implements IPreferences {
       // Set up defaults, and create
       this.preferencesJson = defaultPreferences;
     }
+
+    const packageJsonFile = path.join(extensionContext.extensionPath, 'package.json');
+    const packageJson = JSON.parse(await promisifyReadFile(packageJsonFile));
+
+    // tslint:disable-next-line:forin
+    for (const p in packageJson.contributes.configuration.properties) {
+      const prop = packageJson.contributes.configuration.properties[p];
+      if (prop.type === 'boolean') {
+        this.updatableSettings.push(new ConfigurationObject(prop.printName, prop.description, p, prop.default));
+      }
+    }
   }
 
   private getConfiguration(): vscode.WorkspaceConfiguration {
     return vscode.workspace.getConfiguration('wpilib', this.workspace.uri);
+  }
+
+  private getConfigurationRoot(): vscode.WorkspaceConfiguration {
+    return vscode.workspace.getConfiguration(undefined, this.workspace.uri);
   }
 
   private async updatePreferences() {

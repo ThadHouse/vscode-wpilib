@@ -349,4 +349,16 @@ export function createVsCommands(context: vscode.ExtensionContext, externalApi: 
       logger.log('build.gradle not found at: ', buildgradle);
     }
   }));
+
+  context.subscriptions.push(vscode.commands.registerCommand('wpilibcore.changeSettings', async () => {
+    const preferencesApi = externalApi.getPreferencesAPI();
+    const workspace = await preferencesApi.getFirstOrSelectedWorkspace();
+    if (workspace === undefined) {
+      vscode.window.showInformationMessage('Cannot set team number in an empty workspace');
+      return;
+    }
+    // tslint:disable-next-line:no-any
+    const preferences = preferencesApi.getPreferences(workspace) as any;
+    preferences.updateProperties(false);
+  }));
 }
