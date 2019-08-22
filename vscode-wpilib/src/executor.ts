@@ -38,8 +38,7 @@ export class ExecuteAPI implements IExecuteAPI {
     });
   }
 
-  public async executeCommand(command: string, name: string, rootDir: string, workspace: vscode.WorkspaceFolder,
-                              env?: { [key: string]: string }): Promise<number> {
+  public getExecuteCommandShell(command: string, rootDir: string, env?: { [key: string]: string }): vscode.ShellExecution {
     const shell = new vscode.ShellExecution(command, {
       cwd: rootDir,
       env,
@@ -56,11 +55,21 @@ export class ExecuteAPI implements IExecuteAPI {
       }
     }
 
-    logger.log('executing command in workspace', shell, workspace.uri.fsPath);
+    
+    return shell;
 
+  }
+
+  public async executeCommand(command: string, name: string, rootDir: string, workspace: vscode.WorkspaceFolder,
+                              env?: { [key: string]: string }): Promise<number> {
+    
+    const shell = this.getExecuteCommandShell(command, rootDir, env); 
+
+    logger.log('executing command in workspace', shell, workspace.uri.fsPath);
     const task = new vscode.Task({ type: 'wpilibgradle' }, workspace, name, 'wpilib', shell);
     task.presentationOptions.echo = true;
     task.presentationOptions.clear = true;
+ 
     const execution = await vscode.tasks.executeTask(task);
     const runner: ITaskRunner = {
       cancelled: false,

@@ -35,6 +35,7 @@ import { EclipseImport } from './webviews/eclipseimport';
 import { Help } from './webviews/help';
 import { ProjectCreator } from './webviews/projectcreator';
 import { WPILibUpdates } from './wpilibupdates';
+import { GradleTaskProvider } from './gradletaskprovider';
 
 // External API class to implement the IExternalAPI interface
 class ExternalAPI implements IExternalAPI {
@@ -211,6 +212,8 @@ export async function activate(context: vscode.ExtensionContext) {
     logger.error('error creating project info gatherer', err);
     creationError = true;
   }
+
+  context.subscriptions.push(new GradleTaskProvider(externalApi.getExecuteAPI(), externalApi));
 
   // Create all of our commands that the extension runs
   createVsCommands(context, externalApi);
